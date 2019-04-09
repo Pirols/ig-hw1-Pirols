@@ -34,7 +34,7 @@ var vertexColors = [
     vec4( 0.0, 1.0, 0.0, 1.0 ),  // green
     vec4( 0.0, 0.0, 1.0, 1.0 ),  // blue
     vec4( 1.0, 0.0, 1.0, 1.0 ),  // magenta
-    vec4( 0.0, 1.0, 1.0, 1.0 ),  // white
+    vec4( 1.0, 1.0, 1.0, 1.0 ),  // white
     vec4( 0.0, 1.0, 1.0, 1.0 )   // cyan
 ];
 
@@ -60,8 +60,7 @@ function quad(a, b, c, d) {
      colorsArray.push(vertexColors[a]);
 }
 
-function colorCube()
-{
+function colorCube() {
     quad( 1, 0, 3, 2 );
     quad( 2, 3, 7, 6 );
     quad( 3, 0, 4, 7 );
@@ -69,7 +68,6 @@ function colorCube()
     quad( 4, 5, 6, 7 );
     quad( 5, 4, 0, 1 );
 }
-
 
 window.onload = function init() {
 
@@ -83,14 +81,20 @@ window.onload = function init() {
 
     gl.enable(gl.DEPTH_TEST);
 
-    //
-    //  Load shaders and initialize attribute buffers
-    //
+    // Load shaders and initialize attribute buffers
     program = initShaders( gl, "vertex-shader", "fragment-shader" );
     gl.useProgram( program );
 
     colorCube();
 
+    /*var eye = [100.0, 100.0, 100.0],
+        at = [0.0, 0.0, 0.0],
+        up = [100.0, 101.0, 100.0];
+
+    lookAt(eye, at, up)
+    */
+    
+    // Load data into the GPU
     var cBuffer = gl.createBuffer();
     gl.bindBuffer( gl.ARRAY_BUFFER, cBuffer );
     gl.bufferData( gl.ARRAY_BUFFER, flatten(colorsArray), gl.STATIC_DRAW );
