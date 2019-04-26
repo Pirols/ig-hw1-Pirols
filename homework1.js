@@ -24,6 +24,7 @@ var eye;
 var radius = 6.0
 var theta = 0.0,
     phi = 0.0;
+var dr = 5.0 * Math.PI/180.0;
 
 // orthogonal projection parameters
 var projectionMatrix, projectionMatrixLoc;
@@ -33,7 +34,16 @@ var ytop = 2.0;
 var bottom = -2.0;
 var near = -10.0, far = 10.0;
 
-var dr = 5.0 * Math.PI/180.0;
+// scaling parameters
+var scalingMatrix, scalingMatrixLoc;
+var scalingAmount = 0.5;
+
+// translation parameters
+var translationMatrix, translationMatrixLoc
+var translationX = 0.0,
+    translationY = 0.0,
+    translationZ = 0.0;
+
 
 var vertices = [
     vec4(-0.5, -0.5,  0.5, 1.0),
@@ -123,8 +133,10 @@ window.onload = function init() {
     gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vPosition);
 
-    modelViewMatrixLoc = gl.getUniformLocation(program, "modelViewMatrix")
-    projectionMatrixLoc = gl.getUniformLocation(program, "projectionMatrix")
+    modelViewMatrixLoc = gl.getUniformLocation(program, "modelViewMatrix");
+    projectionMatrixLoc = gl.getUniformLocation(program, "projectionMatrix");
+    scalingMatrixLoc = gl.getUniformLocation(program, "scalingMatrix");
+    translationMatrixLoc = gl.getUniformLocation(program, "translationMatrix");
 
     // Listeners for the eye position
     document.getElementById("ThetaUp").onclick = function(){theta += dr;};
@@ -142,6 +154,14 @@ window.onload = function init() {
     document.getElementById("Higher").onclick = function(){ytop  *= 0.9; bottom *= 0.9;};
     document.getElementById("Shorter").onclick = function(){ytop *= 1.1; bottom *= 1.1;};
 
+    // Listener for the scaling 
+    document.getElementById("Scale").oninput = function(){scalingAmount = event.srcElement.value;};
+
+    // Listeners for the translations over the X, Y and Z axis
+    document.getElementById("TranslateX").oninput = function(){translationX = event.srcElement.value;};
+    document.getElementById("TranslateY").oninput = function(){translationY = event.srcElement.value;};
+    document.getElementById("TranslateZ").oninput = function(){translationZ = event.srcElement.value;};
+
     render();
 }
 
@@ -152,12 +172,16 @@ var render = function() {
     eye = vec3( radius * Math.sin(theta) * Math.cos(phi),
                 radius * Math.sin(theta) * Math.sin(phi),
                 radius * Math.cos(theta));
-                
-    modelViewMatrix = lookAt(eye, at, up)
-    projectionMatrix = ortho(left, right, bottom, ytop, near, far);
 
-    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix))
-    gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix))
+    modelViewMatrix = lookAt(eye, at, up);
+    projectionMatrix = ortho(left, right, bottom, ytop, near, far);
+    scalingMatrix = scalem(scalingAmount, scalingAmount, scalingAmount);
+    translationMatrix = translate(translationX, translationY, translationZ);
+
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+    gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
+    gl.uniformMatrix4fv(scalingMatrixLoc, false, flatten(scalingMatrix));
+    gl.uniformMatrix4fv(translationMatrixLoc, false, flatten(translationMatrix));
 
     gl.drawArrays(gl.TRIANGLES, 0, numVertices);
     requestAnimFrame(render);
