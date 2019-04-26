@@ -149,19 +149,23 @@ window.onload = function init() {
     // Listeners for the viewing volume
     document.getElementById("ZUp").onclick = function(){near  *= 1.1; far *= 1.1;};
     document.getElementById("ZDown").onclick = function(){near  *= 0.9; far *= 0.9;};
-    document.getElementById("Wider").onclick = function(){left  *= 0.9; right *= 0.9;};
     document.getElementById("Narrower").onclick = function(){left *= 1.1; right *= 1.1;};
-    document.getElementById("Higher").onclick = function(){ytop  *= 0.9; bottom *= 0.9;};
+    document.getElementById("Wider").onclick = function(){left  *= 0.9; right *= 0.9;};
     document.getElementById("Shorter").onclick = function(){ytop *= 1.1; bottom *= 1.1;};
+    document.getElementById("Higher").onclick = function(){ytop  *= 0.9; bottom *= 0.9;};
 
     // Listener for the scaling 
-    document.getElementById("Scale").oninput = function(){scalingAmount = event.srcElement.value;};
+    document.getElementById("Scale").oninput = function(){scalingAmount = event.srcElement.valueAsNumber;};
 
     // Listeners for the translations over the X, Y and Z axis
-    document.getElementById("TranslateX").oninput = function(){translationX = event.srcElement.value;};
-    document.getElementById("TranslateY").oninput = function(){translationY = event.srcElement.value;};
-    document.getElementById("TranslateZ").oninput = function(){translationZ = event.srcElement.value;};
+    document.getElementById("TranslateX").oninput = function(){translationX = event.srcElement.valueAsNumber;};
+    document.getElementById("TranslateY").oninput = function(){translationY = event.srcElement.valueAsNumber;};
+    document.getElementById("TranslateZ").oninput = function(){translationZ = event.srcElement.valueAsNumber;};
 
+    // Listeners for the far and near sliders
+    document.getElementById("Far").oninput = function(){far = event.srcElement.valueAsNumber;};
+    document.getElementById("Near").oninput = function(){near = event.srcElement.valueAsNumber;};
+    
     render();
 }
 
