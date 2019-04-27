@@ -35,7 +35,7 @@ var bottom = -1.0;
 var near = 1.0, far = 8.0;
 
 // perspective projection parameters
-var fovy = 20.0;
+var fovy = 30.0;
 var aspectRatio;
 
 // scaling parameters
