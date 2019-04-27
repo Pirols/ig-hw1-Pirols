@@ -147,8 +147,22 @@ window.onload = function init() {
     document.getElementById("RDown").onclick = function(){radius *= 0.5;};
 
     // Listeners for the viewing volume
-    document.getElementById("ZUp").onclick = function(){near  *= 1.1; far *= 1.1;};
-    document.getElementById("ZDown").onclick = function(){near  *= 0.9; far *= 0.9;};
+    document.getElementById("ZUp").onclick = function() {
+        near  *= 1.1; 
+        far *= 1.1; 
+        // I also update the sliders' values in order to display the changes
+        // Of course if this exceeds the max or the min values of the sliders it will just stop to the maximum or minimum value respectively
+        document.getElementById("Far").valueAsNumber = far; 
+        document.getElementById("Near").valueAsNumber = near;
+    };
+    document.getElementById("ZDown").onclick = function(){
+        near  *= 0.9; 
+        far *= 0.9;
+        // I also update the sliders' values in order to display the changes
+        // Of course if this exceeds the max or the min values of the sliders it will just stop to the maximum or minimum value respectively
+        document.getElementById("Far").valueAsNumber = far; 
+        document.getElementById("Near").valueAsNumber = near;
+    };
     document.getElementById("Narrower").onclick = function(){left *= 1.1; right *= 1.1;};
     document.getElementById("Wider").onclick = function(){left  *= 0.9; right *= 0.9;};
     document.getElementById("Shorter").onclick = function(){ytop *= 1.1; bottom *= 1.1;};
@@ -163,8 +177,22 @@ window.onload = function init() {
     document.getElementById("TranslateZ").oninput = function(){translationZ = event.srcElement.valueAsNumber;};
 
     // Listeners for the far and near sliders
-    document.getElementById("Far").oninput = function(){far = event.srcElement.valueAsNumber;};
-    document.getElementById("Near").oninput = function(){near = event.srcElement.valueAsNumber;};
+    document.getElementById("Far").oninput = function() {
+        far = event.srcElement.valueAsNumber;
+        // I handle the case in which the user tries to set far to a lower value than near decreasing the latter by a small amount
+        if (far <= document.getElementById("Near").valueAsNumber) {
+            document.getElementById("Near").valueAsNumber = far - 0.01
+            near = far - 0.01
+        }
+    };
+    document.getElementById("Near").oninput = function() {
+        near = event.srcElement.valueAsNumber;
+        // I handle the case in which the user tries to set near to a higher value than far increasing the latter by a small amount
+        if (near >= document.getElementById("Far").valueAsNumber) {
+            document.getElementById("Far").valueAsNumber = near + 0.01
+            far = near + 0.01
+        }
+    };
     
     render();
 }
