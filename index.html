@@ -8,6 +8,7 @@
             uniform mat4 projectionMatrix;
             uniform mat4 scalingMatrix;
             uniform mat4 translationMatrix;
+
             attribute vec4 vPosition;
             attribute vec4 vColor;
 
@@ -61,9 +62,8 @@
             Y -1<input id="TranslateY" type="range" min="-1.0" max="1.0" step="0.01" value="0.0"/>1
             Z -1<input id="TranslateZ" type="range" min="-1.0" max="1.0" step="0.01" value="0.0"/>1
             <p> </p>
-            Near -10<input id="Near" type="range" min="-10.0" max="10.0" step="0.01" value="-10.0"/> 10
-            Far -10<input id="Far" type="range" min="-10.0" max="10.0" step="0.01" value="10.0"/> 10
-
+            Near -10<input id="Near" type="range" min="-10.0" max="10.0" step="0.01" value="1.0"/> 10
+            Far -10<input id="Far" type="range" min="-10.0" max="10.0" step="0.01" value="8.0"/> 10
         </div>
         <canvas id="gl-canvas" width="1024" height="1024">
             Oops ... your browser doesn't support the HTML5 canvas element

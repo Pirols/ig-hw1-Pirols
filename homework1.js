@@ -21,25 +21,29 @@ var modelViewMatrix, modelViewMatrixLoc;
 const at = vec3(0.0, 0.0, 0.0);
 const up = vec3(0.0, 1.0, 0.0);
 var eye;
-var radius = 6.0
+var radius = 6.0;
 var theta = 0.0,
     phi = 0.0;
 var dr = 5.0 * Math.PI/180.0;
 
 // orthogonal projection parameters
 var projectionMatrix, projectionMatrixLoc;
-var left = -2.0;
-var right = 2.0;
-var ytop = 2.0;
-var bottom = -2.0;
-var near = -10.0, far = 10.0;
+var left = -0.5;
+var right = 0.5;
+var ytop = 1.0;
+var bottom = -1.0;
+var near = 1.0, far = 8.0;
+
+// perspective projection parameters
+var fovy = 20.0;
+var aspectRatio;
 
 // scaling parameters
 var scalingMatrix, scalingMatrixLoc;
 var scalingAmount = 0.5;
 
 // translation parameters
-var translationMatrix, translationMatrixLoc
+var translationMatrix, translationMatrixLoc;
 var translationX = 0.0,
     translationY = 0.0,
     translationZ = 0.0;
@@ -63,8 +67,8 @@ var vertexColors = [
     vec4(0.0, 1.0, 0.0, 1.0),  // green
     vec4(0.0, 0.0, 1.0, 1.0),  // blue
     vec4(1.0, 0.0, 1.0, 1.0),  // magenta
-    vec4(0.0, 1.0, 1.0, 1.0),  // cyan
-    vec4(1.0, 1.0, 1.0, 1.0)   // white
+    vec4(1.0, 1.0, 1.0, 1.0),  // white
+    vec4(0.0, 1.0, 1.0, 1.0)   // cyan
 ];
 
 var thetaLoc;
@@ -90,23 +94,21 @@ function quad(a, b, c, d) {
 }
 
 function colorCube() {
-    quad( 1, 0, 3, 2 );
-    quad( 2, 3, 7, 6 );
-    quad( 3, 0, 4, 7 );
-    quad( 6, 5, 1, 2 );
-    quad( 4, 5, 6, 7 );
-    quad( 5, 4, 0, 1 );
+    quad(1, 0, 3, 2);
+    quad(2, 3, 7, 6);
+    quad(3, 0, 4, 7);
+    quad(6, 5, 1, 2);
+    quad(4, 5, 6, 7);
+    quad(5, 4, 0, 1);
 }
 
 window.onload = function init() {
 
     canvas = document.getElementById("gl-canvas");
+    aspectRatio = canvas.width / (2*canvas.height);
 
     gl = WebGLUtils.setupWebGL(canvas);
     if (!gl) { alert("WebGL isn't available"); }
-
-    gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clearColor(1.0, 1.0, 1.0, 1.0);
 
     gl.enable(gl.DEPTH_TEST);
 
@@ -181,23 +183,27 @@ window.onload = function init() {
         far = event.srcElement.valueAsNumber;
         // I handle the case in which the user tries to set far to a lower value than near decreasing the latter by a small amount
         if (far <= document.getElementById("Near").valueAsNumber) {
-            document.getElementById("Near").valueAsNumber = far - 0.01
-            near = far - 0.01
+            document.getElementById("Near").valueAsNumber = far - 0.01;
+            near = far - 0.01;
         }
     };
     document.getElementById("Near").oninput = function() {
         near = event.srcElement.valueAsNumber;
         // I handle the case in which the user tries to set near to a higher value than far increasing the latter by a small amount
         if (near >= document.getElementById("Far").valueAsNumber) {
-            document.getElementById("Far").valueAsNumber = near + 0.01
-            far = near + 0.01
+            document.getElementById("Far").valueAsNumber = near + 0.01;
+            far = near + 0.01;
         }
     };
-    
+
     render();
 }
 
-var render = function() {
+function partialRender(x, y, width, height, projectionMatrix) {
+    // Discards fragments outside the scissor rectangle, defined below
+    gl.enable(gl.SCISSOR_TEST);
+    gl.viewport(x, y, width, height);
+    gl.scissor(x, y, width, height);
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -206,7 +212,6 @@ var render = function() {
                 radius * Math.cos(theta));
 
     modelViewMatrix = lookAt(eye, at, up);
-    projectionMatrix = ortho(left, right, bottom, ytop, near, far);
     scalingMatrix = scalem(scalingAmount, scalingAmount, scalingAmount);
     translationMatrix = translate(translationX, translationY, translationZ);
 
@@ -216,5 +221,21 @@ var render = function() {
     gl.uniformMatrix4fv(translationMatrixLoc, false, flatten(translationMatrix));
 
     gl.drawArrays(gl.TRIANGLES, 0, numVertices);
+}
+
+var render = function() {
+
+    // left scissor rectangle with the orthogonal projection
+    projectionMatrix = ortho(left, right, bottom, ytop, near, far);
+    // I evidence the left part of the canvas with the cyan colour
+    gl.clearColor(0.0, 1.0, 1.0, 1.0);
+    partialRender(0, 0, canvas.width / 2, canvas.height, projectionMatrix);
+  
+    // right scissor rectangle with the perspective projection
+    projectionMatrix = perspective(fovy, aspectRatio, near, far);
+    // I evidence the right part of the canvas with the black colour
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    partialRender(canvas.width / 2, 0, canvas.width / 2, canvas.height, projectionMatrix);
+
     requestAnimFrame(render);
 }
