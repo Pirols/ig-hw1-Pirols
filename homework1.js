@@ -12,18 +12,21 @@ var program;
 var c;
 
 var flag = true;
+var phoFlag = true;
 
 var pointsArray = [];
-var colorsArray = [];
+var normalsArray = [];
 
 // modelView parameters
 var modelViewMatrix, modelViewMatrixLoc;
 const at = vec3(0.0, 0.0, 0.0);
 const up = vec3(0.0, 1.0, 0.0);
-var eye;
 var radius = 6.0;
 var theta = 0.0,
     phi = 0.0;
+var eye = vec3( radius * Math.sin(theta) * Math.cos(phi),
+                radius * Math.sin(theta) * Math.sin(phi),
+                radius * Math.cos(theta));
 var dr = 5.0 * Math.PI/180.0;
 
 // orthogonal projection parameters
@@ -48,6 +51,17 @@ var translationX = 0.0,
     translationY = 0.0,
     translationZ = 0.0;
 
+// light parameters -- I use a point source
+var lightPosition = vec4(0.0, 0.0, 2.0, 1.0);
+var lightAmbient = vec4(0.2, 0.2, 0.2, 1.0);
+var lightDiffuse = vec4(1.0, 1.0, 1.0, 1.0);
+var lightSpecular = vec4(1.0, 1.0, 1.0, 1.0);
+
+// material parameters -> I've chosen emerald, according to this website: http://www.barradeau.com/nicoptere/dump/materials.html
+var materialAmbient = vec4(0.0215, 0.1745, 0.0215, 0.55);
+var materialDiffuse = vec4(0.07568, 0.61424, 0.07568, 0.55);
+var materialSpecular = vec4(0.633, 0.727811, 0.633, 0.55);
+var materialShininess = 76.8;
 
 var vertices = [
     vec4(-0.5, -0.5,  0.5, 1.0),
@@ -60,37 +74,32 @@ var vertices = [
     vec4(0.5, -0.5, -0.5, 1.0)
 ];
 
-var vertexColors = [
-    vec4(0.0, 0.0, 0.0, 1.0),  // black
-    vec4(1.0, 0.0, 0.0, 1.0),  // red
-    vec4(1.0, 1.0, 0.0, 1.0),  // yellow
-    vec4(0.0, 1.0, 0.0, 1.0),  // green
-    vec4(0.0, 0.0, 1.0, 1.0),  // blue
-    vec4(1.0, 0.0, 1.0, 1.0),  // magenta
-    vec4(1.0, 1.0, 1.0, 1.0),  // white
-    vec4(0.0, 1.0, 1.0, 1.0)   // cyan
-];
-
 var thetaLoc;
 
 function quad(a, b, c, d) {
-     pointsArray.push(vertices[a]);
-     colorsArray.push(vertexColors[a]);
+    var t1 = subtract(vertices[b], vertices[a]);
+    var t2 = subtract(vertices[c], vertices[b]);
+    var normal = cross(t1, t2);
+    var normal = vec3(normal);
+    normal = normalize(normal);
 
-     pointsArray.push(vertices[b]);
-     colorsArray.push(vertexColors[a]);
+    pointsArray.push(vertices[a]);
+    normalsArray.push(normal);
 
-     pointsArray.push(vertices[c]);
-     colorsArray.push(vertexColors[a]);
+    pointsArray.push(vertices[b]);
+    normalsArray.push(normal);
 
-     pointsArray.push(vertices[a]);
-     colorsArray.push(vertexColors[a]);
+    pointsArray.push(vertices[c]);
+    normalsArray.push(normal);
 
-     pointsArray.push(vertices[c]);
-     colorsArray.push(vertexColors[a]);
+    pointsArray.push(vertices[a]);
+    normalsArray.push(normal);
 
-     pointsArray.push(vertices[d]);
-     colorsArray.push(vertexColors[a]);
+    pointsArray.push(vertices[c]);
+    normalsArray.push(normal);
+
+    pointsArray.push(vertices[d]);
+    normalsArray.push(normal);
 }
 
 function colorCube() {
@@ -105,7 +114,7 @@ function colorCube() {
 window.onload = function init() {
 
     canvas = document.getElementById("gl-canvas");
-    aspectRatio = canvas.width / (2*canvas.height);
+    aspectRatio = canvas.width/(2*canvas.height);
 
     gl = WebGLUtils.setupWebGL(canvas);
     if (!gl) { alert("WebGL isn't available"); }
@@ -118,14 +127,13 @@ window.onload = function init() {
 
     colorCube();
     
-    // Load data into the GPU
-    var cBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(colorsArray), gl.STATIC_DRAW);
+    var nBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, nBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(normalsArray), gl.STATIC_DRAW);
 
-    var vColor = gl.getAttribLocation(program, "vColor");
-    gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(vColor);
+    var vNormal = gl.getAttribLocation(program, "vNormal");
+    gl.vertexAttribPointer(vNormal, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vNormal);
 
     var vBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
@@ -134,6 +142,23 @@ window.onload = function init() {
     var vPosition = gl.getAttribLocation(program, "vPosition");
     gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vPosition);
+
+    var ambientProduct = mult(lightAmbient, materialAmbient);
+    var diffuseProduct = mult(lightDiffuse, materialDiffuse);
+    var specularProduct = mult(lightSpecular, materialSpecular);
+
+    gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"), flatten(ambientProduct));
+    gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct));
+    gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct));
+    gl.uniform4fv(gl.getUniformLocation(program, "lightPosition"), flatten(lightPosition));
+    gl.uniform1f(gl.getUniformLocation(program, "shininess"), materialShininess);
+
+    gl.uniform3fv(gl.getUniformLocation(program, "eye"), flatten(eye));
+
+    gl.uniform4fv(gl.getUniformLocation(program, "fragmentAmbientProduct"), flatten(ambientProduct));
+    gl.uniform4fv(gl.getUniformLocation(program, "fragmentDiffuseProduct"), flatten(diffuseProduct));
+    gl.uniform4fv(gl.getUniformLocation(program, "fragmentSpecularProduct"), flatten(specularProduct));
+    gl.uniform1f(gl.getUniformLocation(program, "fragmentShininess"), materialShininess);
 
     modelViewMatrixLoc = gl.getUniformLocation(program, "modelViewMatrix");
     projectionMatrixLoc = gl.getUniformLocation(program, "projectionMatrix");
@@ -165,6 +190,7 @@ window.onload = function init() {
         document.getElementById("Far").valueAsNumber = far; 
         document.getElementById("Near").valueAsNumber = near;
     };
+    // Listeners only for the orthogonal projection
     document.getElementById("Narrower").onclick = function(){left *= 1.1; right *= 1.1;};
     document.getElementById("Wider").onclick = function(){left  *= 0.9; right *= 0.9;};
     document.getElementById("Shorter").onclick = function(){ytop *= 1.1; bottom *= 1.1;};
@@ -195,6 +221,8 @@ window.onload = function init() {
             far = near + 0.01;
         }
     };
+    
+    document.getElementById("GourPho").onclick = function(){phoFlag = !phoFlag;};
 
     render();
 }
@@ -220,6 +248,8 @@ function partialRender(x, y, width, height, projectionMatrix) {
     gl.uniformMatrix4fv(scalingMatrixLoc, false, flatten(scalingMatrix));
     gl.uniformMatrix4fv(translationMatrixLoc, false, flatten(translationMatrix));
 
+    gl.uniform1i(gl.getUniformLocation(program, "phoFlag"), phoFlag);
+
     gl.drawArrays(gl.TRIANGLES, 0, numVertices);
 }
 
@@ -227,14 +257,12 @@ var render = function() {
 
     // left scissor rectangle with the orthogonal projection
     projectionMatrix = ortho(left, right, bottom, ytop, near, far);
-    // I evidence the left part of the canvas with the cyan colour
-    gl.clearColor(0.0, 1.0, 1.0, 1.0);
+    gl.clearColor(1.0, 1.0, 1.0, 1.0);
     partialRender(0, 0, canvas.width / 2, canvas.height, projectionMatrix);
   
     // right scissor rectangle with the perspective projection
     projectionMatrix = perspective(fovy, aspectRatio, near, far);
-    // I evidence the right part of the canvas with the black colour
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clearColor(1.0, 1.0, 1.0, 1.0);
     partialRender(canvas.width / 2, 0, canvas.width / 2, canvas.height, projectionMatrix);
 
     requestAnimFrame(render);
