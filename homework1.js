@@ -16,6 +16,7 @@ var phoFlag = true;
 
 var pointsArray = [];
 var normalsArray = [];
+var texCoordsArray = [];
 
 // modelView parameters
 var modelViewMatrix, modelViewMatrixLoc;
@@ -52,7 +53,7 @@ var translationX = 0.0,
     translationZ = 0.0;
 
 // light parameters -- I use a point source
-var lightPosition = vec4(0.0, 0.0, 2.0, 1.0);
+var lightPosition = vec4(1.0, 1.0, 2.0, 1.0);
 var lightAmbient = vec4(0.2, 0.2, 0.2, 1.0);
 var lightDiffuse = vec4(1.0, 1.0, 1.0, 1.0);
 var lightSpecular = vec4(1.0, 1.0, 1.0, 1.0);
@@ -63,6 +64,35 @@ var materialDiffuse = vec4(0.07568, 0.61424, 0.07568, 0.55);
 var materialSpecular = vec4(0.633, 0.727811, 0.633, 0.55);
 var materialShininess = 76.8;
 
+// texture parameters
+var texSize = 256;
+var numRows = 16, numCols = 16;
+
+var image1 = new Uint8Array(4 * texSize * texSize);
+for (var i = 0; i < texSize; ++i) {
+    for (var j = 0; j < texSize; ++j) {
+        var patchx = Math.floor(i/(texSize/numRows));
+        var patchy = Math.floor(j/(texSize/numCols));
+
+        var c = (patchx%2 !== patchy%2 ? 255 : 0);
+        image1[4 * i * texSize + 4 * j] = c;
+        image1[4 * i * texSize + 4 * j + 1] = c;
+        image1[4 * i * texSize + 4 * j + 2] = c;
+        image1[4 * i * texSize + 4 * j + 3] = 255;
+    }
+}
+
+var image2 = new Uint8Array(4 * texSize * texSize);
+for (var i = 0; i < texSize; ++i) {
+    for (var j = 0; j < texSize; ++j) {
+        var c = 127 + 127 * Math.sin(0.1*i*j);
+        image2[4 * i * texSize + 4 * j] = c;
+        image2[4 * i * texSize + 4 * j + 1] = c;
+        image2[4 * i * texSize + 4 * j + 2] = c;
+        image2[4 * i * texSize + 4 * j + 3] = 255;
+    }
+}
+
 var vertices = [
     vec4(-0.5, -0.5,  0.5, 1.0),
     vec4(-0.5,  0.5,  0.5, 1.0),
@@ -72,6 +102,13 @@ var vertices = [
     vec4(-0.5,  0.5, -0.5, 1.0),
     vec4(0.5,  0.5, -0.5, 1.0),
     vec4(0.5, -0.5, -0.5, 1.0)
+];
+
+var texCoord = [
+    vec2(0, 0),
+    vec2(0, 1),
+    vec2(1, 1),
+    vec2(1, 0)
 ];
 
 var thetaLoc;
@@ -85,21 +122,27 @@ function quad(a, b, c, d) {
 
     pointsArray.push(vertices[a]);
     normalsArray.push(normal);
+    texCoordsArray.push(texCoord[0]);
 
     pointsArray.push(vertices[b]);
     normalsArray.push(normal);
+    texCoordsArray.push(texCoord[1]);
 
     pointsArray.push(vertices[c]);
     normalsArray.push(normal);
+    texCoordsArray.push(texCoord[2]);
 
     pointsArray.push(vertices[a]);
     normalsArray.push(normal);
+    texCoordsArray.push(texCoord[0]);
 
     pointsArray.push(vertices[c]);
     normalsArray.push(normal);
+    texCoordsArray.push(texCoord[2]);
 
     pointsArray.push(vertices[d]);
     normalsArray.push(normal);
+    texCoordsArray.push(texCoord[3]);
 }
 
 function colorCube() {
@@ -142,6 +185,38 @@ window.onload = function init() {
     var vPosition = gl.getAttribLocation(program, "vPosition");
     gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vPosition);
+
+    var tBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, tBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(texCoordsArray), gl.STATIC_DRAW);
+
+    var vTexCoord = gl.getAttribLocation(program, "vTexCoord");
+    gl.vertexAttribPointer(vTexCoord, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vTexCoord);
+
+    var texture1 = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture1);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, texSize, texSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, image1);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl. TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    var texture2 = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture2);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, texSize, texSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, image2);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl. TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, texture1);
+    gl.uniform1i(gl.getUniformLocation(program, "Tex0"), 0);
+
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, texture2);
+    gl.uniform1i(gl.getUniformLocation(program, "Tex1"), 0);
 
     var ambientProduct = mult(lightAmbient, materialAmbient);
     var diffuseProduct = mult(lightDiffuse, materialDiffuse);

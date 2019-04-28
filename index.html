@@ -18,10 +18,12 @@
             uniform bool phoFlag;
 
             attribute vec4 vPosition;
-            attribute vec4 vNormal;
+            attribute vec3 vNormal;
+            attribute vec2 vTexCoord;
 
             varying vec4 fColor;
             varying vec3 N, L, E;
+            varying vec2 fTexCoord;
 
             void main() {
                 vec3 pos = -(translationMatrix*scalingMatrix*vPosition).xyz;
@@ -31,7 +33,7 @@
                 E = normalize(eye - pos);
                 vec3 H = normalize(L + E);
 
-                N = normalize((translationMatrix*scalingMatrix*vNormal).xyz);
+                N = normalize((translationMatrix*scalingMatrix*vec4(vNormal, 0)).xyz);
 
                 if (phoFlag) {
                     vec4 ambient = ambientProduct;
@@ -48,6 +50,7 @@
                     fColor = ambientProduct + diffuse + specular;
                     fColor.a = 1.0; 
                 }
+                fTexCoord = vTexCoord;
                 gl_Position = projectionMatrix*modelViewMatrix*scalingMatrix*translationMatrix*vPosition;
             }
         </script>
@@ -62,13 +65,17 @@
             uniform float fragmentShininess;
 
             uniform bool phoFlag;
+            uniform sampler2D Tex0;
+            uniform sampler2D Tex1;
 
             varying vec4 fColor;
             varying vec3 N, L, E;
+            varying vec2 fTexCoord;
 
             void main() {
                 if (phoFlag) 
-                    gl_FragColor = fColor;
+                    gl_FragColor = fColor * texture2D(Tex0, fTexCoord)
+                                          * texture2D(Tex1, fTexCoord);
                 else {
 
                     vec4 fragColor;
@@ -89,7 +96,8 @@
                     fragColor = ambient + diffuse + specular;
                     fragColor.a = 1.0;
 
-                    gl_FragColor = fragColor;
+                    gl_FragColor = fragColor * texture2D(Tex0, fTexCoord)
+                                             * texture2D(Tex1, fTexCoord);
                 }
             }
         </script>
@@ -118,7 +126,7 @@
             <button id = "Shorter">Shorter</button>
             <p> </p>
             Scale 
-            -2<input id="Scale" type="range" min="-2" max="2" step="0.01" value="0.0"/>2
+            -2<input id="Scale" type="range" min="-2" max="2" step="0.01" value="0.5"/>2
             <p> </p>
             Translate 
             X -1<input id="TranslateX" type="range" min="-1.0" max="1.0" step="0.01" value="0.0"/>1
@@ -128,7 +136,7 @@
             Near -10<input id="Near" type="range" min="-10.0" max="10.0" step="0.01" value="1.0"/> 10
             Far -10<input id="Far" type="range" min="-10.0" max="10.0" step="0.01" value="8.0"/> 10
             <p> </p>
-            <button id = "GourPho">Gourand/Phong</button>
+            <button id = "GourPho">Gouraud/Phong</button>
         </div>
         <canvas id="gl-canvas" width="1024" height="1024">
             Oops ... your browser doesn't support the HTML5 canvas element
